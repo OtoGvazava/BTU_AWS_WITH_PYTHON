@@ -11,9 +11,6 @@ end_number = args.end_number
 
 armstrong_numbers = []
 
-# start_number = 9
-# end_number = 9999
-
 for number in range(start_number, end_number):
     str_number = str(number)
     str_number_len = len(str_number)
