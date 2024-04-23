@@ -57,3 +57,56 @@ def list_buckets(aws_s3_client):
     except ClientError as e:
         logging.error(e)
         return False
+
+
+def download_file_and_upload_to_s3(aws_s3_client, bucket_name, url, file_name, keep_local=False):
+    from urllib.request import urlopen
+    import io
+    with urlopen(url) as response:
+        content = response.read()
+        try:
+            aws_s3_client.upload_fileobj(Fileobj=io.BytesIO(content), Bucket=bucket_name, Key=file_name)
+        except Exception as e:
+            logging.error(e)
+
+    if keep_local:
+        with open(file_name, 'wb') as jpg_file:
+            jpg_file.write(content)
+    return "https://s3-{0}.amazonaws.com/{1}/{2}".format("uz-west-2", bucket_name, file_name)
+
+
+def set_object_access_policy(aws_s3_client, bucket_name, file_name):
+    try:
+        response = aws_s3_client.put_object_acl(
+            ACL="public-read",
+            Bucket=bucket_name,
+            Key=file_name
+        )
+    except ClientError as e:
+        logging.error(e)
+        return False
+    status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+    if status_code == 200:
+        return True
+    return False
+
+def generate_public_read_policy(bucket_name):
+    import json
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "PublicReadGetObject",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:GetObject",
+                "Resource": f"arn:aws:s3:::{bucket_name}/*"
+            }
+        ]
+    }
+
+    return json.dumps(policy)
+
+# def create_bucket_policy(aws_s3_client, bucket_name):
+#     try:
+#         policy = aws_s3_client.get_bucket_policy(Bucket=bucket_name)
