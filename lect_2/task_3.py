@@ -1,6 +1,6 @@
 import argparse
 from dotenv import load_dotenv
-from s3_utils import *
+from utils.s3_utils import *
 
 parser = argparse.ArgumentParser(description='Get bucket name!.')
 

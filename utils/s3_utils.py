@@ -1,3 +1,7 @@
+import random
+from hashlib import md5
+from time import localtime
+
 import boto3
 from os import getenv
 import logging
@@ -51,6 +55,7 @@ def delete_bucket(aws_s3_client, bucket_name):
         return False
     return True
 
+
 def list_buckets(aws_s3_client):
     try:
         return aws_s3_client.list_buckets()
@@ -75,6 +80,14 @@ def download_file_and_upload_to_s3(aws_s3_client, bucket_name, url, file_name, k
     return "https://s3-{0}.amazonaws.com/{1}/{2}".format("uz-west-2", bucket_name, file_name)
 
 
+def upload_images_to_s3_recursive(s3_client, bucket_name, image_urls):
+    if len(image_urls) != 0:
+        file_name = f'image_file_{md5(str(localtime()).encode("utf-8")).hexdigest()}.jpg'
+        download_file_and_upload_to_s3(s3_client, bucket_name, image_urls[0], file_name)
+        image_urls.pop(0)
+        upload_images_to_s3_recursive(s3_client, bucket_name, image_urls)
+
+
 def set_object_access_policy(aws_s3_client, bucket_name, file_name):
     try:
         response = aws_s3_client.put_object_acl(
@@ -89,6 +102,7 @@ def set_object_access_policy(aws_s3_client, bucket_name, file_name):
     if status_code == 200:
         return True
     return False
+
 
 def generate_public_read_policy(bucket_name):
     import json
@@ -107,6 +121,8 @@ def generate_public_read_policy(bucket_name):
 
     return json.dumps(policy)
 
-# def create_bucket_policy(aws_s3_client, bucket_name):
-#     try:
-#         policy = aws_s3_client.get_bucket_policy(Bucket=bucket_name)
+
+def create_bucket_policy(aws_s3_client, bucket_name):
+    aws_s3_client.put_bucket_policy(
+        Bucket=bucket_name, Policy=generate_public_read_policy(bucket_name)
+    )
